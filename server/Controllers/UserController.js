@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const db = admin.firestore();
+const bcrypt = require('bcrypt');
 const { User } = require('../models/User');
 
 // GET all users
@@ -34,22 +35,29 @@ const getUserById = async (req, res, next) => {
 };
 
 // CREATE a new user
-const createUser = async (req, res, next) => {
-  const { name, email, phone, location } = req.body;
-  const newUser = new User({
-    name,
-    email,
-    phone,
-    location,
-  });
+const bcrypt = require('bcrypt');
+const { User } = require('../models/user');
+
+exports.createUser = async (req, res) => {
   try {
-    const docRef = await db.collection('users').add(newUser);
-    res.status(201).json({ id: docRef.id });
+    const { name, email, password } = req.body;
+    // Generate a salt to use for hashing the password
+    const salt = await bcrypt.genSalt(10);
+    // Hash the password with the generated salt
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword // Store the hashed password in the database
+    });
+    const savedUser = await newUser.save();
+    res.status(201).json(savedUser);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error creating user' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 // UPDATE a user by ID
 const updateUserById = async (req, res, next) => {
